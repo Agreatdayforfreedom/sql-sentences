@@ -159,7 +159,7 @@ where constraint_catalog=current_catalog and table_name='sobresalientes'
 and position_in_unique_constraint notnull;
 
 -- find constraints
-SELECT * FROM information_schema.table_constraints WHERE table_name='mytable'
+SELECT * FROM information_schema.table_constraints WHERE table_name='libros'
 
 --triggers 
 -- example 1:
@@ -276,10 +276,24 @@ CREATE TABLE libros(
     precio DECIMAL(5,2),
     cantidad SMALLINT,
 );
+
+CREATE TABLE log_libros(titulo VARCHAR(40), autor VARCHAR(30),codigoeditorial INTEGER,precio DECIMAL(5,2),cantidad SMALLINT, log_fecha DATE);
 INSERT INTO libros(titulo, autor,codigoeditorial,precio,cantidad)
     VALUES('el aleph','Jorge Luis Borges',1,450,5),
     ('1984', 'George Orwell',2,300,4),
     ('El gato negro', 'Edgar Allan Poe', 1,400,6
 );
 
-CREATE
+CREATE OR REPLACE FUNCTION log_func_libros() RETURNS TRIGGER AS $$
+BEGIN
+    IF (TG_OP='INSERT') THEN
+        INSERT INTO log_libros(titulo, autor,codigoeditorial,precio,cantidad, log_fecha) VALUES(NEW.titulo, NEW.autor, NEW.codigoeditorial, NEW.precio, NEW.cantidad, CURRENT_DATE);
+        RETURN OLD;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+ALTER TABLE libros ADD CONSTRAINT titulo UNIQUE;
+
+CREATE TRIGGER tg_func_log_libros AFTER INSERT OR UPDATE ON libros
+FOR EACH ROW EXECUTE PROCEDURE log_func_libros();
